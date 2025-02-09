@@ -50,12 +50,14 @@ uint64_t ghistory;
 // gshare functions
 void init_gshare()
 {
+  // get total number of BHT entries, where bitwise shift effectively finds 2^(ghistoryBits)
   int bht_entries = 1 << ghistoryBits;
-  bht_gshare = (uint8_t *)malloc(bht_entries * sizeof(uint8_t));
+  // each entry in bht only needs 2 bits, but smallest addressable memory is 8 bits = 1 byte
+  bht_gshare = (uint8_t *)malloc(bht_entries * sizeof(uint8_t));  // allocate dynamic memory for 2-bit saturating counter
   int i = 0;
   for (i = 0; i < bht_entries; i++)
   {
-    bht_gshare[i] = WN;
+    bht_gshare[i] = WN;   // initialize each BHT entry to weakly not taken
   }
   ghistory = 0;
 }
@@ -64,9 +66,13 @@ uint8_t gshare_predict(uint32_t pc)
 {
   // get lower ghistoryBits of pc
   uint32_t bht_entries = 1 << ghistoryBits;
+  // extract lower bits of program counter
   uint32_t pc_lower_bits = pc & (bht_entries - 1);
+  // extract lower bits of global history register
   uint32_t ghistory_lower_bits = ghistory & (bht_entries - 1);
+  // XOR lower bits of PC and GHR to get index of branch prediction
   uint32_t index = pc_lower_bits ^ ghistory_lower_bits;
+  // get bht entry of index to retrieve branch prediction
   switch (bht_gshare[index])
   {
   case WN:
@@ -87,8 +93,11 @@ void train_gshare(uint32_t pc, uint8_t outcome)
 {
   // get lower ghistoryBits of pc
   uint32_t bht_entries = 1 << ghistoryBits;
+  // extract lower bits of program counter
   uint32_t pc_lower_bits = pc & (bht_entries - 1);
+  // extract lower bits of global history register
   uint32_t ghistory_lower_bits = ghistory & (bht_entries - 1);
+  // XOR lower bits of PC and GHR to get index of branch prediction
   uint32_t index = pc_lower_bits ^ ghistory_lower_bits;
 
   // Update state of entry in bht based on outcome
@@ -113,6 +122,7 @@ void train_gshare(uint32_t pc, uint8_t outcome)
 
   // Update history register
   ghistory = ((ghistory << 1) | outcome);
+    // update with actual outcome for latest branch
 }
 
 void cleanup_gshare()
