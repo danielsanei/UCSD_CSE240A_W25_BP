@@ -25,18 +25,19 @@ const char *bpName[4] = {"Static", "Gshare",
                          "Tournament", "Custom"};
 
 // define number of bits required for indexing the BHT here.
-int ghistoryBits = 12;    // Number of bits used for Global History (and Local History for tournament)
+int ghistoryBits = 17;    // Number of bits used for Global History (and Local History for tournament)
 int bpType;               // Branch Prediction Type
 int verbose;
 
+int tghistoryBits = 15;
 int lhistoryBits = 10;    // Number of bits used for Local History (10 bits per branch)
 int pcIndexBits = 10;     // Number of bits for PC index (1024 total branches --> 2^10)
 
 int longTageBits = 16;    // long GHR for TAGE
-int mediumTageBits = 14;  // medium GHR for TAGE
-int shortTageBits = 10;    // short GHR for TAGE
-int tlhistoryBits = 12;   // local history table bits
-int chooserBits = 12;      // chooser table bits
+int mediumTageBits = 12;  // medium GHR for TAGE
+int shortTageBits = 8;    // short GHR for TAGE
+int tlhistoryBits = 8;   // local history table bits
+int chooserBits = 8;      // chooser table bits
 
 //------------------------------------//
 //      Predictor Data Structures     //
@@ -66,9 +67,9 @@ uint8_t *chooser;       // chooser table to decide between global vs. local (2-b
 // custom predictor: adjusted tournament predictor, except GHR split into 3 different sizes
 
 // global predictor (short, medium, long GHR)
-uint8_t *bht_tage_long;     // 32-bit GHR
+uint8_t *bht_tage_long;     // 16-bit GHR
 uint64_t ghistory_long;
-uint8_t *bht_tage_medium;   // 16-bit GHR
+uint8_t *bht_tage_medium;   // 12-bit GHR
 uint64_t ghistory_medium;
 uint8_t *bht_tage_short;    // 8-bit GHR
 uint64_t ghistory_short;
@@ -92,9 +93,9 @@ uint8_t *chooser_tage;
 void init_tage()
 {
   // get total entries
-  int global_bht_entries_long = 1 << longTageBits;      // 17 bits
-  int global_bht_entries_medium = 1 << mediumTageBits;  // 16 bits
-  int global_bht_entries_short = 1 << shortTageBits;    // 14 bits
+  int global_bht_entries_long = 1 << longTageBits;      // 16 bits
+  int global_bht_entries_medium = 1 << mediumTageBits;  // 12 bits
+  int global_bht_entries_short = 1 << shortTageBits;    // 8 bits
 
   // initialize each bht with correct size
   bht_tage_long = (uint8_t *)malloc(global_bht_entries_long * sizeof(uint8_t));
@@ -102,11 +103,11 @@ void init_tage()
   bht_tage_short = (uint8_t *)malloc(global_bht_entries_short * sizeof(uint8_t));
 
   // initialize all predictions to weakly taken
-  for ( int i = 0; i < global_bht_entries_long; i++ ) {     // 32 bits
+  for ( int i = 0; i < global_bht_entries_long; i++ ) {     // 16 bits
     bht_tage_long[i] = WN;
   }
   ghistory_long = 0;
-  for ( int i = 0; i < global_bht_entries_medium; i++ ) {   // 16 bits
+  for ( int i = 0; i < global_bht_entries_medium; i++ ) {   // 12 bits
     bht_tage_medium[i] = WN;
   }
   ghistory_medium = 0;
@@ -365,7 +366,7 @@ void cleanup_tage()
 void init_tournament()
 {
   // global predictor
-  int global_bht_entries = 1 << ghistoryBits;   // total entries
+  int global_bht_entries = 1 << tghistoryBits;   // total entries
   bht_tglobal = (uint8_t *)malloc(global_bht_entries * sizeof(uint8_t));  // initialize BHT with correct size
   for ( int i = 0; i < global_bht_entries; i++ ) {
     bht_tglobal[i] = WN;  // each entry --> weakly not taken
@@ -387,7 +388,7 @@ void init_tournament()
   } // 1024 entries for each branch
 
   // chooser table
-  int chooser_entries = 1 << ghistoryBits;  // total entries
+  int chooser_entries = 1 << tghistoryBits;  // total entries
   chooser = (uint8_t *)malloc(chooser_entries * sizeof(uint8_t));   // chooser table size
   for ( int i = 0; i < chooser_entries; i++ ) {
     chooser[i] = WN;  // each entry --> weakly not taken
@@ -397,7 +398,7 @@ void init_tournament()
 uint8_t tournament_predict(uint32_t pc)
 {
   // gshare predictor (similar to standalone gshare)
-  uint32_t global_bht_entries = 1 << ghistoryBits;                      // 2^ghistoryBits = global BHT entries
+  uint32_t global_bht_entries = 1 << tghistoryBits;                      // 2^ghistoryBits = global BHT entries
   uint32_t pc_lower_bits_global = pc & (global_bht_entries - 1);        // extract lower bits of PC
   uint32_t ghistory_lower_bits = ghistory & (global_bht_entries - 1);   // extract lower bits of GHR
   uint32_t global_index = pc_lower_bits_global ^ ghistory_lower_bits;   // XOR the PC, GHR to get global BHT index
@@ -440,7 +441,7 @@ uint8_t tournament_predict(uint32_t pc)
 void train_tournament(uint32_t pc, uint8_t outcome)
 {
   // gshare predictor (similar to standalone gshare)
-  uint32_t global_bht_entries = 1 << ghistoryBits;                      // 2^ghistoryBits = global BHT entries
+  uint32_t global_bht_entries = 1 << tghistoryBits;                      // 2^ghistoryBits = global BHT entries
   uint32_t pc_lower_bits_global = pc & (global_bht_entries - 1);        // extract lower bits of PC
   uint32_t ghistory_lower_bits = ghistory & (global_bht_entries - 1);   // extract lower bits of GHR
   uint32_t global_index = pc_lower_bits_global ^ ghistory_lower_bits;   // XOR the PC, GHR to get global BHT index
@@ -520,7 +521,7 @@ void train_tournament(uint32_t pc, uint8_t outcome)
   // update GHR (left bitwise shift, then add new outcome)
   uint64_t old_ghr = ghistory;
   uint64_t new_ghr = (old_ghr << 1) | outcome;
-  ghistory = new_ghr & ((1 << ghistoryBits) - 1);
+  ghistory = new_ghr & ((1 << tghistoryBits) - 1);
 }
 
 void cleanup_tournament()
