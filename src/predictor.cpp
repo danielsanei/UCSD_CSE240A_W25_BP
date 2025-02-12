@@ -69,9 +69,9 @@ uint8_t *chooser;       // chooser table to decide between global vs. local (2-b
 // global predictor (short, medium, long GHR)
 uint8_t *bht_tage_long;     // 16-bit GHR
 uint64_t ghistory_long;
-uint8_t *bht_tage_medium;   // 12-bit GHR
+uint8_t *bht_tage_medium;   // 15-bit GHR
 uint64_t ghistory_medium;
-uint8_t *bht_tage_short;    // 8-bit GHR
+uint8_t *bht_tage_short;    // 14-bit GHR
 uint64_t ghistory_short;
 
 // local predictor
