@@ -25,7 +25,7 @@ const char *bpName[4] = {"Static", "Gshare",
                          "Tournament", "Custom"};
 
 // define number of bits required for indexing the BHT here.
-int ghistoryBits = 15;    // Number of bits used for Global History
+int ghistoryBits = 14;    // Number of bits used for Global History
 int bpType;               // Branch Prediction Type
 int verbose;
 
@@ -33,8 +33,9 @@ int lhistoryBits = 15;    // Number of bits used for Local History (10 bits per 
 int pcIndexBits = 10;     // Number of bits for PC index (1024 total branches --> 2^10)
 
 int longTageBits = 16;    // long GHR for TAGE
-int mediumTageBits = 15;  // medium GHR for TAGE
-int shortTageBits = 14;   // short GHR for TAGE
+int mediumTageBits = 14;  // medium GHR for TAGE
+int shortTageBits = 10;    // short GHR for TAGE
+int chooserBits = 10;      // chooser table bits
 
 //------------------------------------//
 //      Predictor Data Structures     //
@@ -195,7 +196,7 @@ uint8_t tage_predict(uint32_t pc)
   }
 
   // chooser index set to short global index by default
-  uint32_t chooser_entries = 1 << shortTageBits;
+  uint32_t chooser_entries = 1 << chooserBits;
   uint32_t chooser_index = ghistory_short & (chooser_entries - 1);
   uint8_t chooser_prediction = chooser_tage[chooser_index];
 
