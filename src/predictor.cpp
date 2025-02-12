@@ -25,19 +25,19 @@ const char *bpName[4] = {"Static", "Gshare",
                          "Tournament", "Custom"};
 
 // define number of bits required for indexing the BHT here.
-int ghistoryBits = 17;    // Number of bits used for Global History (and Local History for tournament)
+int ghistoryBits = 15;    // Number of bits used for Global History (and Local History for tournament)
 int bpType;               // Branch Prediction Type
 int verbose;
 
 int tghistoryBits = 15;
-int lhistoryBits = 10;    // Number of bits used for Local History (10 bits per branch)
+int lhistoryBits = 15;    // Number of bits used for Local History (10 bits per branch)
 int pcIndexBits = 10;     // Number of bits for PC index (1024 total branches --> 2^10)
 
 int longTageBits = 16;    // long GHR for TAGE
-int mediumTageBits = 12;  // medium GHR for TAGE
-int shortTageBits = 8;    // short GHR for TAGE
-int tlhistoryBits = 8;   // local history table bits
-int chooserBits = 8;      // chooser table bits
+int mediumTageBits = 15;  // medium GHR for TAGE
+int shortTageBits = 14;    // short GHR for TAGE
+int tlhistoryBits = 10;   // local history table bits
+int chooserBits = 10;      // chooser table bits
 
 //------------------------------------//
 //      Predictor Data Structures     //
