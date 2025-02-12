@@ -30,7 +30,7 @@ int bpType;               // Branch Prediction Type
 int verbose;
 
 int tghistoryBits = 15;
-int lhistoryBits = 15;    // Number of bits used for Local History (10 bits per branch)
+int lhistoryBits = 10;    // Number of bits used for Local History (10 bits per branch)
 int pcIndexBits = 10;     // Number of bits for PC index (1024 total branches --> 2^10)
 
 int longTageBits = 16;    // long GHR for TAGE
@@ -273,11 +273,6 @@ void train_tage(uint32_t pc, uint8_t outcome)
     local_prediction = NOTTAKEN;
   }
 
-  // chooser index set to short global index by default
-  uint32_t chooser_entries = 1 << shortTageBits;
-  uint32_t chooser_index = ghistory_short & (chooser_entries - 1);
-  uint8_t chooser_prediction = chooser_tage[chooser_index];
-
   // update predictors based on outcome
   if ( outcome == TAKEN ) {   // branch taken, checks to prevent 2-bit counter from going over upper bound
     if ( bht_tage_long[long_index] < ST ) {
@@ -307,6 +302,11 @@ void train_tage(uint32_t pc, uint8_t outcome)
     }
   }
 
+  // chooser index set to short global index by default
+  uint32_t chooser_entries = 1 << chooserBits;
+  uint32_t chooser_index = ghistory_short & (chooser_entries - 1);
+  uint8_t chooser_prediction = chooser_tage[chooser_index];
+
   // update chooser table by comparing global, local predictors
   uint8_t final_prediction;
   if ( chooser_prediction < WN ) {            // favor local if < 1 (i.e. = 0)
@@ -325,13 +325,13 @@ void train_tage(uint32_t pc, uint8_t outcome)
   // compare final prediction to outcome
   if ( final_prediction == outcome ) {
     if ( chooser_tage[chooser_index] < ST ) {      // prevent 2-bit counter from going over upper bound
-      chooser_tage[chooser_index]++;
+      chooser_tage[chooser_index] += 1;
     }
     
   }
   else {
     if ( chooser_tage[chooser_index] > SN ) {      // prevent 2-bit counter from going under lower bound
-      chooser_tage[chooser_index]--;
+      chooser_tage[chooser_index] -= 5;
     }
   }
 
@@ -470,7 +470,8 @@ void train_tournament(uint32_t pc, uint8_t outcome)
   }
 
   // chooser index set to global index by default
-  uint32_t chooser_index = global_index;
+  uint32_t chooser_entries = 1 << chooserBits;
+  uint32_t chooser_index = ghistory_short & (chooser_entries - 1);
 
   // update global, local predictors based on actual outcome
   if ( outcome == TAKEN ) {   // branch taken
