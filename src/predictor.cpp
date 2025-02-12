@@ -25,17 +25,18 @@ const char *bpName[4] = {"Static", "Gshare",
                          "Tournament", "Custom"};
 
 // define number of bits required for indexing the BHT here.
-int ghistoryBits = 14;    // Number of bits used for Global History
+int ghistoryBits = 12;    // Number of bits used for Global History (and Local History for tournament)
 int bpType;               // Branch Prediction Type
 int verbose;
 
-int lhistoryBits = 15;    // Number of bits used for Local History (10 bits per branch)
+int lhistoryBits = 10;    // Number of bits used for Local History (10 bits per branch)
 int pcIndexBits = 10;     // Number of bits for PC index (1024 total branches --> 2^10)
 
 int longTageBits = 16;    // long GHR for TAGE
 int mediumTageBits = 14;  // medium GHR for TAGE
 int shortTageBits = 10;    // short GHR for TAGE
-int chooserBits = 10;      // chooser table bits
+int tlhistoryBits = 12;   // local history table bits
+int chooserBits = 12;      // chooser table bits
 
 //------------------------------------//
 //      Predictor Data Structures     //
@@ -115,7 +116,7 @@ void init_tage()
   ghistory_short = 0;
 
   // local predictor (BHT local)
-  int local_bht_entries = 1 << lhistoryBits;      // total entries (predictions per branch)
+  int local_bht_entries = 1 << tlhistoryBits;      // total entries (predictions per branch)
   bht_local_tage = (uint8_t *)malloc(local_bht_entries * sizeof(uint8_t));  // BHT size
   for ( int i = 0; i < local_bht_entries; i++ ) {
     bht_local_tage[i] = WN;  // each entry --> weakly not taken
@@ -159,7 +160,7 @@ uint8_t tage_predict(uint32_t pc)
   // local predictor
   uint32_t local_lht_entries = 1 << pcIndexBits;                                // 2^pcIndexBits = LHT entries
   uint32_t pc_lower_bits_local = pc & (local_lht_entries - 1);                  // extract lower bits of PC
-  uint32_t local_bht_entries = 1 << lhistoryBits;                               // 2^lhistoryBits = local BHT entries
+  uint32_t local_bht_entries = 1 << tlhistoryBits;                               // 2^lhistoryBits = local BHT entries
   uint32_t local_index = lht_tage[pc_lower_bits_local] & (local_bht_entries - 1);    // index into local BHT using LHT as index
                                                                                     // for branch-specific history
 
@@ -235,7 +236,7 @@ void train_tage(uint32_t pc, uint8_t outcome)
   // local predictor
   uint32_t local_lht_entries = 1 << pcIndexBits;                                // 2^pcIndexBits = LHT entries
   uint32_t pc_lower_bits_local = pc & (local_lht_entries - 1);                  // extract lower bits of PC
-  uint32_t local_bht_entries = 1 << lhistoryBits;                               // 2^lhistoryBits = local BHT entries
+  uint32_t local_bht_entries = 1 << tlhistoryBits;                               // 2^lhistoryBits = local BHT entries
   uint32_t local_index = lht_tage[pc_lower_bits_local] & (local_bht_entries - 1);    // index into local BHT using LHT as index
                                                                                     // for branch-specific history
 
@@ -336,7 +337,7 @@ void train_tage(uint32_t pc, uint8_t outcome)
   // update LHT (left bitwise shift, then add new outcome)
   uint16_t old_lht = lht_tage[pc_lower_bits_local];
   uint16_t new_lht = (old_lht << 1) | outcome;
-  lht_tage[pc_lower_bits_local] = new_lht & ((1 << lhistoryBits) - 1);
+  lht_tage[pc_lower_bits_local] = new_lht & ((1 << tlhistoryBits) - 1);
 
   // update long, mediun, short GHRs (left bitwise shift, then add new outcome)
   uint64_t old_ghr_long = ghistory_long;
